@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fastify CRUD</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { margin: 5px; }
+    button { margin-left: 5px; }
+    li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+  <h2 id="formTitle">Register User</h2>
+
+  <input id="name" placeholder="Name">
+  <input id="email" placeholder="Email">
+  <input id="password" placeholder="Password" type="password">
+  <button onclick="submitForm()">Save</button>
+  <button onclick="resetForm()">Cancel</button>
+
+  <h2>Users</h2>
+  <ul id="users"></ul>
+
+<script>
+  let editUserId = null;
+
+  const nameInput = document.getElementById('name');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const usersList = document.getElementById('users');
+  const formTitle = document.getElementById('formTitle');
+
+  async function submitForm() {
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!name || !email) {
+      alert("Name & Email required");
+      return;
+    }
+
+    // CREATE
+    if (editUserId === null) {
+      await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+    }
+    // UPDATE
+    else {
+      await fetch('/users/' + editUserId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+    }
+
+    resetForm();  
+    loadUsers();
+  }
+
+  function editUser(id, name, email) {
+    editUserId = id;
+    nameInput.value = name;
+    emailInput.value = email;
+    passwordInput.value = '';
+    formTitle.innerText = "Update User";
+  }
+
+  function resetForm() {
+    editUserId = null;
+    nameInput.value = '';
+    emailInput.value = '';
+    passwordInput.value = '';
+    formTitle.innerText = "Register User";
+  }
+
+  async function loadUsers() {
+    const res = await fetch('/users');
+    const users = await res.json();
+
+    usersList.innerHTML = '';
+    users.forEach(u => {
+      usersList.innerHTML += `
+        <li>
+          ${u.name} (${u.email})
+          <button onclick="editUser(${u.id}, '${u.name}', '${u.email}')">Update</button>
+          <button onclick="deleteUser(${u.id})">Delete</button>
+        </li>
+      `;
+    });
+  }
+
+  async function deleteUser(id) {
+    await fetch('/users/' + id, { method: 'DELETE' });
+    loadUsers();
+  }
+
+  loadUsers();
+</script>
+
+</body>
+</html>
